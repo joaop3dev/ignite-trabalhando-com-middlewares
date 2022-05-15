@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 
-const { v4: uuidv4, validate } = require('uuid');
+const { v4: uuidv4, validate: uuidValidate } = require('uuid');
 
 const app = express();
 app.use(express.json());
@@ -10,19 +10,62 @@ app.use(cors());
 const users = [];
 
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers
+
+  const user = users.find(user => user.username === username)
+
+  if (!user) 
+    return response.status(404).json({ error: 'User does not exists' })
+
+  request.user = user
+
+  return next()
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const { user } = request
+
+  if(!user.pro && user.todos.length >= 10)
+    return response.status(403).json({ error: 'You need to update to pro' })
+
+  return next()
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers,
+        { id } = request.params
+
+  if (!uuidValidate(id))
+    return response.status(400).json({ error: 'Invalid id' })
+
+  const userAlreadyExists = users.find(user => user.username === username);
+
+  if (!userAlreadyExists)
+    return response.status(404).json({ error: 'User does not exists' })
+
+  const todoAlreadyExists = userAlreadyExists.todos.find(todo => todo.id === id);
+
+  if (!todoAlreadyExists)
+    return response.status(404).json({ error: 'Todo does not exists' })
+
+  request.user = userAlreadyExists
+  request.todo = todoAlreadyExists
+
+  return next()
+
 }
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  const { id } = request.params
+
+  const user = users.find(user => user.id === id)
+
+  if (!user)
+    return response.status(404).json({ error: 'User does not exists' })
+
+  request.user = user
+
+  return next()
 }
 
 app.post('/users', (request, response) => {
